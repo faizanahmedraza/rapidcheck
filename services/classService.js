@@ -432,7 +432,7 @@ exports.viewAnnouncements = catchAsyncErrors(async (req, res, next) => {
     count
   });
 });
-exports.getClasses = async (req, res, next) => {
+exports.getClasses = catchAsyncErrors(async (req, res, next) => {
   const { keyword, courseCode } = req.query;
 
   const whereParams = {
@@ -490,4 +490,18 @@ exports.getClasses = async (req, res, next) => {
     classes,
     count,
   });
-};
+});
+
+exports.getAddMultipleStudentsToClassTemplate = catchAsyncErrors(
+  async (req, res, next) => {
+    const csvData = `${["email"].join(",")}\r\n`;
+
+    res
+      .status(200)
+      .set({
+        "Content-Type": "text/csv",
+        "Content-Disposition": `attachment; filename="students_enrollment_template.csv"`,
+      })
+      .send(csvData);
+  }
+);
