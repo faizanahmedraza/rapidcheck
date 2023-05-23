@@ -30,6 +30,7 @@ const registrationRequestEmailTemplate = require("../utils/email/templates/regis
 const {
   announcementPostedNotification,
 } = require("../events/announcementEvents");
+const { assessmentSolutionStatus } = require("../constants/assessment");
 
 const registrationRequestNotificationHandler = async ({
   teacherName,
@@ -719,6 +720,8 @@ exports.getStudentScores = catchAsyncErrors(async (req, res, next) => {
     }
   }
 
+  let currentTimestamp = Date.now();
+
   let [solvedAssessments, count, totalObtainedMarks, totalAvailableMarks] =
     await Promise.all([
       applyPagination(
@@ -763,6 +766,12 @@ exports.getStudentScores = catchAsyncErrors(async (req, res, next) => {
         {
           $match: {
             studentId,
+            status: {
+              $in: [
+                assessmentSolutionStatus.GRADED,
+                assessmentSolutionStatus.REGRADE_REQUESTED,
+              ],
+            },
           },
         },
         {
@@ -774,6 +783,38 @@ exports.getStudentScores = catchAsyncErrors(async (req, res, next) => {
       ]),
     ]);
 
+  let solutions = await AssessmentSolution.find({
+    studentId,
+    status: {
+      $in: [
+        assessmentSolutionStatus.GRADED,
+        assessmentSolutionStatus.REGRADE_REQUESTED,
+      ],
+    },
+  })
+    .populate({
+      path: "assessmentId",
+      ...(!!classId && { match: { classId } }),
+    })
+    .exec();
+
+  solutions = solutions.filter((solution) => !!solution.assessmentId);
+
+  let obtainedMarks = 0;
+  let totalMarks = 0;
+
+  solutions.forEach((solution) => {
+    let dueDateTimestamp = new Date(solution.assessmentId?.dueDate).getTime();
+
+    if (
+      currentTimestamp >=
+      dueDateTimestamp + solution.assessmentId?.duration
+    ) {
+      obtainedMarks += solution.obtainedMarks;
+      totalMarks += solution.assessmentId?.totalMarks;
+    }
+  });
+
   solvedAssessments = solvedAssessments.map((solution) => ({
     _id: solution._id,
     assessmentId: solution.assessmentId?._id,
@@ -784,8 +825,10 @@ exports.getStudentScores = catchAsyncErrors(async (req, res, next) => {
   }));
 
   return res.status(200).json({
-    totalObtainedMarks: totalObtainedMarks[0]?.totalObtainedMarks || null,
-    totalAvailableMarks: totalAvailableMarks[0]?.totalAvailableMarks || null,
+    // totalObtainedMarks: totalObtainedMarks[0]?.totalObtainedMarks || null,
+    // totalAvailableMarks: totalAvailableMarks[0]?.totalAvailableMarks || null,
+    totalObtainedMarks: obtainedMarks,
+    totalAvailableMarks: totalMarks,
     solvedAssessments,
     count,
   });
