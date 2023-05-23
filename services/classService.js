@@ -587,7 +587,7 @@ exports.viewStudentAnnouncements = catchAsyncErrors(async (req, res, next) => {
         },
         {
           $lookup: {
-            from: "class",
+            from: "classes",
             localField: "classId",
             foreignField: "_id",
             as: "classData",
@@ -598,7 +598,6 @@ exports.viewStudentAnnouncements = catchAsyncErrors(async (req, res, next) => {
             title: 1,
             description: 1,
             _id: 1,
-            classId: 1,
             className: { $arrayElemAt: ["$classData.className", 0] },
           },
         },
