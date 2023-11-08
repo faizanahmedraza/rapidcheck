@@ -53,7 +53,9 @@ student performance and provide appropriate feedback.
 - Storage capacity: approximately 20 MB (for installing application)
 - Internet: Internet connection required
 - Screen Size and Resolution: 320x480 pixels or higher
+  
 Network Protocol
+
 - Https/Http
 - Mongo dB wire protocol
 - TCP/IPv6
